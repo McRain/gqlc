@@ -1,0 +1,29 @@
+{
+  "name": "@reneos/gqlc",
+  "version": "1.0.1",
+  "type":"module",
+  "description": "GraphQL Client Library",
+  "main": "index.cjs",
+  "exports": "index.mjs",
+  "module":"index.mjs",
+  "sourceType": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/McRain/gqlc.git"
+  },
+  "keywords": [
+    "graphql"
+  ],
+  "author": {
+    "email": "dev@reneos.com",
+    "name": "Viktor Abdulov"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/McRain/gqlc/issues"
+  },
+  "homepage": "https://github.com/McRain/gqlc#readme"
+}
