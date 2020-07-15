@@ -10,7 +10,7 @@ const _stored = {}
 
 let _eventHandlers = {}
 
-module.export = class GraphQLClient {
+module.exports = class GraphQLClient {
 	static On(event, handler) {
 		_eventHandlers[event] = handler
 	}
