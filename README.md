@@ -1,10 +1,11 @@
 # gqlbc
 GraphQL Client library for browsers 
 
-## Usage
+## Install
 
 npm i @reneos/gqlc
 
+## Usage
 
 `import gqlapi from "gqlapi"
 gqlapi.Init({
