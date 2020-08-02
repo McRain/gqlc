@@ -1,5 +1,5 @@
 # gqlbc
-GraphQL Client library for browsers 
+GraphQL Client library for browsers : https://www.npmjs.com/package/@reneos/gqlc
 
 ## Install
 
