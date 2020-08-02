@@ -3,6 +3,9 @@ GraphQL Client library for browsers
 
 ## Usage
 
+npm i @reneos/gqlc
+
+
 `import gqlapi from "gqlapi"
 gqlapi.Init({
 	url: https://webserver/grapqlapi`,
