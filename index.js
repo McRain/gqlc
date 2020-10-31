@@ -14,58 +14,104 @@ export default class GraphQLClient {
 	static On(event, handler) {
 		_eventHandlers[event] = handler
 	}
-	static Store(obj) {
+
+	/**
+	 * Save to stored templates
+	 * @param {Object} obj 
+	 */
+	static Save(obj) {
 		Object.keys(obj).forEach(k => {
 			_stored[k] = obj[k]
 		})
 	}
-	static Init(config,stored) {
-		Object.assign(_gqlcOpt, config)
-		if(stored)
-			GraphQLClient.Store(stored)
-		return GraphQLClient
-	}
-	static Get(q) {
-		return GraphQLClient.Do('query', q, null)
-	}
-	static Set(q) {
-		return GraphQLClient.Do('mutation', q, null)
-	}
-	static async StoredGet(name, data) {
-		if (!_stored[name])
-			throw new Error(`Unable to find saved query "${name}" `)
-		const q = JSON.parse(JSON.stringify(await _stored[name]))
-		return GraphQLClient.Do('query', q, data)
-	}
-	static async StoredSet(name, data) {
-		const q = JSON.parse(JSON.stringify(await _stored[name]))
-		return GraphQLClient.Do('mutation', q, data)
-	}
-	static Query(template, data){
-		return GraphQLClient.Do("query",template,data)
-	}
-	static Mutation(template, data){
-		return GraphQLClient.Do("mutation",template,data)
+
+	/**
+	 * Delete stored template
+	 * @param {Array} keys 
+	 */
+	static Delete(keys) {
+		keys.forEach(k => {
+			if (_stored[k])
+				delete _stored[k]
+		})
 	}
 
+	static Init(config) {
+		Object.assign(_gqlcOpt, config)
+		return GraphQLClient
+	}
+
+	static ParseTemplate(template, data) {
+		let q
+		if (data)
+			q = JSON.parse(JSON.stringify(template, (k, v) => {
+				if (data.hasOwnProperty(v))
+					return data[v]
+				return v
+			}))
+		return q
+	}
+
+	/**
+	 * Request with template
+	 * @param {Object} template {"key":"$keyInData"}
+	 * @param {Object} data keyInData=>value
+	 */
+	static Query(template, data) {
+		const q = GraphQLClient.ParseTemplate(template, data)
+		return GraphQLClient.Do("query", q)
+	}
+	/**
+	 * Request with template
+	 * @param {Object} template {"key":"$keyInData"}
+	 * @param {Object} data keyInData=>value
+	 */
+	static Mutation(template, data) {
+		const q = GraphQLClient.ParseTemplate(template, data)
+		return GraphQLClient.Do("mutation", q)
+	}
+
+	/**
+	 * Request with stored template
+	 * @param {String} name name of stored template
+	 * @param {Object} data keyInData=>value
+	 */
+	static QueryBy(name, data) {
+		return GraphQLClient.Query(_stored[name], data)
+	}
+	/**
+	 * Request with stored template
+	 * @param {String} name name of stored template
+	 * @param {Object} data keyInData=>value
+	 */
+	static MutationBy(name, data) {
+		return GraphQLClient.Mutation(_stored[name], data)
+	}
+
+	/**
+	 * Send query
+	 * @param {Object} q
+	 */
+	static Get(q) {
+		return GraphQLClient.Do('query', q)
+	}
+	/**
+	 * Send mutation
+	 * @param {Object} q
+	 */
+	static Set(q) {
+		return GraphQLClient.Do('mutation', q)
+	}
 
 	/**
 	 * 
 	 * @param {string} op : Operation
 	 * @param {Object} q : Query
-	 * @param {Object} data - Obje
 	 */
-	static async Do(op, q, data) {
-		if (data)
-			q = JSON.parse(JSON.stringify(q, (k, v) => {
-				if (data.hasOwnProperty(v))
-					return data[v]
-				return v
-			}))
+	static async Do(op, q) {
 		const query = GraphQLClient.Build(op, q)
-		let str = JSON.stringify({ query })
 		try {
-			return await GraphQLClient.Send(str)
+			return await GraphQLClient.Send(JSON.stringify({ query }))
 		} catch (error) {
 			if (_eventHandlers.error)
 				_eventHandlers.error(error.code ? error : { error: { code: 400 } })
@@ -85,8 +131,8 @@ export default class GraphQLClient {
 		let result = ``
 		if (!obj)
 			return result
-		if (typeof (obj) === "string" || 
-			typeof (obj) === "number" || 
+		if (typeof (obj) === "string" ||
+			typeof (obj) === "number" ||
 			Array.isArray(obj))
 			return JSON.stringify(obj)
 		Object.keys(obj).forEach((k) => {
@@ -152,22 +198,27 @@ export default class GraphQLClient {
 		return result.slice(0, -1) + " ) "
 	}
 
-	static async Send(data) {
-		let resp
+	/**
+	 * 
+	 * @param {String} data 
+	 * @param {Object} optional
+	 */
+	static async Send(data, { url, method, credentials, headers }) {
+		let result = {}
 		try {
-			resp = await fetch(_gqlcOpt.url, {
-				method: _gqlcOpt.method,
+			const resp = await fetch(url || _gqlcOpt.url, {
+				method: method || _gqlcOpt.method,
 				headers: Object.assign({
 					"Content-Type": "application/json",
 					"Accept": "application/json"
-				}, _gqlcOpt.headers),
+				}, headers || _gqlcOpt.headers),
 				body: data,
-				credentials: _gqlcOpt.credentials
+				credentials: credentials || _gqlcOpt.credentials
 			})
+			result = await resp.json()
 		} catch (e) {
 			throw e
 		}
-		const result = await resp.json()
 		if (result.error)
 			throw new GraphError(result.error)
 		return result.data
