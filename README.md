@@ -7,8 +7,8 @@ npm i @reneos/gqlc
 
 ## Usage
 
-`import gqlapi from "gqlapi"
-gqlapi.Init({
+`import gqlc from "@reneos/gqlc"
+gqlc.Init({
 	url: https://webserver/grapqlapi`,
 	method: "post",
 	credentials: "include",
@@ -17,7 +17,7 @@ gqlapi.Init({
 
 ###### Query:
 
-`const {user,error} = await gqlapi.Get(
+`const {user,error} = await gqlc.Get(
 						{
 							user: [
 								"_id"
@@ -31,7 +31,7 @@ gqlapi.Init({
     
 ###### Mutation
 
-`const {entrypoint,error} = await gqlapi.Set({
+`const {entrypoint,error} = await gqlc.Set({
 				entrypoint: [
 					{
 						$args: {
