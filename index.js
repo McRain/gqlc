@@ -10,11 +10,10 @@ const _stored = {}
 
 let _eventHandlers = {}
 
-module.exports = class GraphQLClient {
+export default class GraphQLClient {
 	static On(event, handler) {
 		_eventHandlers[event] = handler
 	}
-
 	static Store(obj) {
 		Object.keys(obj).forEach(k => {
 			_stored[k] = obj[k]
@@ -22,45 +21,41 @@ module.exports = class GraphQLClient {
 	}
 	static Init(config,stored) {
 		Object.assign(_gqlcOpt, config)
-		GraphQLClient.Store(stored)
+		if(stored)
+			GraphQLClient.Store(stored)
 		return GraphQLClient
 	}
-	static Get(q, info, field) {
-		const st = performance.now()
-		return GraphQLClient.Do('query', q, info, field, null, st)
+	static Get(q) {
+		return GraphQLClient.Do('query', q, null)
 	}
-	static Set(q, info, field) {
-		const st = performance.now()
-		return GraphQLClient.Do('mutation', q, info, field, null, st)
+	static Set(q) {
+		return GraphQLClient.Do('mutation', q, null)
 	}
-	static StoredGet(name, data, info, field) {
-		const st = performance.now()
-		const q = JSON.parse(JSON.stringify(_stored[name]))
-		return GraphQLClient.Do('query', q, info, field, data, st)
+	static async StoredGet(name, data) {
+		if (!_stored[name])
+			throw new Error(`Unable to find saved query "${name}" `)
+		const q = JSON.parse(JSON.stringify(await _stored[name]))
+		return GraphQLClient.Do('query', q, data)
 	}
-	static StoredSet(name, data, info, field) {
-		const st = performance.now()
-		const q = JSON.parse(JSON.stringify(_stored[name]))
-		return GraphQLClient.Do('mutation', q, info, field, data, st)
+	static async StoredSet(name, data) {
+		const q = JSON.parse(JSON.stringify(await _stored[name]))
+		return GraphQLClient.Do('mutation', q, data)
 	}
 	static Query(template, data){
-		const st = performance.now()
-		return GraphQLClient.Do("query",template,null,null,data,st)
+		return GraphQLClient.Do("query",template,data)
 	}
 	static Mutation(template, data){
-		const st = performance.now()
-		return GraphQLClient.Do("mutation",template,null,null,data,st)
+		return GraphQLClient.Do("mutation",template,data)
 	}
+
+
 	/**
 	 * 
 	 * @param {string} op : Operation
 	 * @param {Object} q : Query
-	 * @param {*} info 
-	 * @param {string} field 
 	 * @param {Object} data - Obje
-	 * @param {*} startTime 
 	 */
-	static async Do(op, q, info, field, data, startTime) {
+	static async Do(op, q, data) {
 		if (data)
 			q = JSON.parse(JSON.stringify(q, (k, v) => {
 				if (data.hasOwnProperty(v))
@@ -69,15 +64,8 @@ module.exports = class GraphQLClient {
 			}))
 		const query = GraphQLClient.Build(op, q)
 		let str = JSON.stringify({ query })
-		if (_gqlcOpt.log)
-			console.log(`Build time  ${(performance.now() - startTime).toFixed(4)} msec`)
 		try {
-			const result = await GraphQLClient.Send(str)
-			if (_gqlcOpt.log)
-				console.log(`Full time ${(performance.now() - startTime).toFixed(4)} msec`)
-			if (info)
-				return Object.assign(info, (field ? result[field] : result))
-			return field ? result[field] : result
+			return await GraphQLClient.Send(str)
 		} catch (error) {
 			if (_eventHandlers.error)
 				_eventHandlers.error(error.code ? error : { error: { code: 400 } })
@@ -97,7 +85,9 @@ module.exports = class GraphQLClient {
 		let result = ``
 		if (!obj)
 			return result
-		if (typeof (obj) === "string" || typeof (obj) === "number")
+		if (typeof (obj) === "string" || 
+			typeof (obj) === "number" || 
+			Array.isArray(obj))
 			return JSON.stringify(obj)
 		Object.keys(obj).forEach((k) => {
 			result += k + " "
@@ -163,15 +153,20 @@ module.exports = class GraphQLClient {
 	}
 
 	static async Send(data) {
-		const resp = await fetch(_gqlcOpt.url, {
-			method: _gqlcOpt.method,
-			headers: Object.assign({
-				"Content-Type": "application/json",
-				"Accept": "application/json"
-			}, _gqlcOpt.headers),
-			body: data,
-			credentials: _gqlcOpt.credentials
-		})
+		let resp
+		try {
+			resp = await fetch(_gqlcOpt.url, {
+				method: _gqlcOpt.method,
+				headers: Object.assign({
+					"Content-Type": "application/json",
+					"Accept": "application/json"
+				}, _gqlcOpt.headers),
+				body: data,
+				credentials: _gqlcOpt.credentials
+			})
+		} catch (e) {
+			throw e
+		}
 		const result = await resp.json()
 		if (result.error)
 			throw new GraphError(result.error)

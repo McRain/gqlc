@@ -1,12 +1,9 @@
 {
   "name": "@reneos/gqlc",
-  "version": "1.0.1",
+  "version": "1.0.5",
   "type":"module",
   "description": "GraphQL Client Library",
-  "main": "index.cjs",
-  "exports": "index.mjs",
-  "module":"index.mjs",
-  "sourceType": "module",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
