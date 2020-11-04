@@ -1,9 +1,9 @@
-/*eslint-env es6*/
+/* eslint-disable */
 const _gqlcOpt = {
 	"method": "post",
 	"credentials": "include",
-	"log": true,
-	"headers": {}
+	"headers": {},
+	"url":""
 }
 
 const _stored = {}
@@ -19,7 +19,7 @@ export default class GraphQLClient {
 	 * Save to stored templates
 	 * @param {Object} obj 
 	 */
-	static Save(obj) {
+	static Add(obj) {
 		Object.keys(obj).forEach(k => {
 			_stored[k] = obj[k]
 		})
@@ -29,7 +29,7 @@ export default class GraphQLClient {
 	 * Delete stored template
 	 * @param {Array} keys 
 	 */
-	static Delete(keys) {
+	static Remove(keys) {
 		keys.forEach(k => {
 			if (_stored[k])
 				delete _stored[k]
@@ -42,7 +42,7 @@ export default class GraphQLClient {
 	}
 
 	static ParseTemplate(template, data) {
-		let q
+		let q = template
 		if (data)
 			q = JSON.parse(JSON.stringify(template, (k, v) => {
 				if (data.hasOwnProperty(v))
@@ -52,55 +52,33 @@ export default class GraphQLClient {
 		return q
 	}
 
-	/**
-	 * Request with template
-	 * @param {Object} template {"key":"$keyInData"}
-	 * @param {Object} data keyInData=>value
+	/**	 
+	 * @param {Object | String} str 
+	 * @param {Object} data 
 	 */
-	static Query(template, data) {
-		const q = GraphQLClient.ParseTemplate(template, data)
-		return GraphQLClient.Do("query", q)
-	}
-	/**
-	 * Request with template
-	 * @param {Object} template {"key":"$keyInData"}
-	 * @param {Object} data keyInData=>value
-	 */
-	static Mutation(template, data) {
-		const q = GraphQLClient.ParseTemplate(template, data)
-		return GraphQLClient.Do("mutation", q)
+	static Get(value,data){
+		const t = typeof value ==="string"?_stored[value]:value
+		return GraphQLClient.Do('query', GraphQLClient.ParseTemplate(t, data))
 	}
 
 	/**
-	 * Request with stored template
-	 * @param {String} name name of stored template
-	 * @param {Object} data keyInData=>value
+	 * 
+	 * @param {Object | String} str 
+	 * @param {Object} data 
 	 */
-	static QueryBy(name, data) {
-		return GraphQLClient.Query(_stored[name], data)
-	}
-	/**
-	 * Request with stored template
-	 * @param {String} name name of stored template
-	 * @param {Object} data keyInData=>value
-	 */
-	static MutationBy(name, data) {
-		return GraphQLClient.Mutation(_stored[name], data)
+	static Set(value,data){
+		const t = typeof value ==="string"?_stored[value]:value
+		return GraphQLClient.Do('mutation', GraphQLClient.ParseTemplate(t, data))
 	}
 
 	/**
-	 * Send query
-	 * @param {Object} q
+	 * 
+	 * @param {Object | String} str 
+	 * @param {Object} data 
 	 */
-	static Get(q) {
-		return GraphQLClient.Do('query', q)
-	}
-	/**
-	 * Send mutation
-	 * @param {Object} q
-	 */
-	static Set(q) {
-		return GraphQLClient.Do('mutation', q)
+	static Sub(value,data){
+		const t = typeof value ==="string"?_stored[value]:value
+		return GraphQLClient.Do('subscript', GraphQLClient.ParseTemplate(t, data))
 	}
 
 	/**
@@ -111,7 +89,7 @@ export default class GraphQLClient {
 	static async Do(op, q) {
 		const query = GraphQLClient.Build(op, q)
 		try {
-			return await GraphQLClient.Send(JSON.stringify({ query }))
+			return await GraphQLClient.Send(JSON.stringify({ query }),_gqlcOpt)
 		} catch (error) {
 			if (_eventHandlers.error)
 				_eventHandlers.error(error.code ? error : { error: { code: 400 } })
@@ -203,7 +181,7 @@ export default class GraphQLClient {
 	 * @param {String} data 
 	 * @param {Object} optional
 	 */
-	static async Send(data, { url, method, credentials, headers }) {
+	static async Send(data, { url, method, credentials, headers } ) {
 		let result = {}
 		try {
 			const resp = await fetch(url || _gqlcOpt.url, {
