@@ -11,8 +11,7 @@ npm i @reneos/gqlc
 gqlc.Init({
 	url: https://webserver/grapqlapi`,
 	method: "post",
-	credentials: "include",
-	log: false
+	credentials: "include"
 })`
 
 ###### Query:
